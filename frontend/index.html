@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HotelEase | Management System</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="app-container">
+
+    <aside class="sidebar">
+        <div class="logo">
+            <h2>Hotel<span>Ease</span></h2>
+            <p>Management System</p>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-link active" data-page="dashboard">Dashboard</a>
+            <a href="#" class="nav-link" data-page="guests">Guests</a>
+            <a href="#" class="nav-link" data-page="rooms">Rooms</a>
+            <a href="#" class="nav-link" data-page="bookings">Bookings</a>
+            <a href="#" class="nav-link" data-page="billing">Billing</a>
+            <a href="#" class="nav-link" data-page="staff">Staff</a>
+            <a href="#" class="nav-link" data-page="services">Services</a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <p>Hotel Management</p>
+            <small>Version 1.0</small>
+        </div>
+    </aside>
+
+    <main class="main-content">
+
+        <header class="topbar">
+            <div>
+                <h1 id="page-title">Dashboard</h1>
+                <p>Welcome to HotelEase Management System</p>
+            </div>
+
+            <div class="user-profile">
+                <div class="user-avatar">A</div>
+                <span>Administrator</span>
+            </div>
+        </header>
+
+        <div class="dashboard-content">
+
+            <!-- DASHBOARD -->
+            <section class="page-section active" id="dashboard">
+
+                <div class="welcome-section">
+                    <h2>Hotel Overview</h2>
+                    <p>Manage your hotel operations from one place.</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <p>Total Rooms</p>
+                        <h2 id="total-rooms">0</h2>
+                    </div>
+
+                    <div class="stat-card">
+                        <p>Total Guests</p>
+                        <h2 id="total-guests">0</h2>
+                    </div>
+
+                    <div class="stat-card">
+                        <p>Total Bookings</p>
+                        <h2 id="total-bookings">0</h2>
+                    </div>
+
+                    <div class="stat-card">
+                        <p>Available Rooms</p>
+                        <h2 id="available-rooms">0</h2>
+                    </div>
+                </div>
+
+                <div class="content-card">
+                    <h2>Recent Bookings</h2>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Booking ID</th>
+                                    <th>Guest</th>
+                                    <th>Room</th>
+                                    <th>Check-in</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-bookings"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </section>
+
+
+            <!-- GUEST MANAGEMENT -->
+            <section class="page-section" id="guests">
+
+                <div class="section-heading">
+                    <div>
+                        <h2>Guest Management</h2>
+                        <p>Manage hotel guest information.</p>
+                    </div>
+
+                    <button class="primary-btn" id="show-guest-form">
+                        + Add Guest
+                    </button>
+                </div>
+
+                <div class="form-card hidden" id="guest-form-card">
+                    <h3>Add New Guest</h3>
+
+                    <form id="guest-form">
+                        <div class="form-grid">
+
+                            <div class="form-group">
+                                <label>Full Name</label>
+                                <input type="text" id="guest-name" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" id="guest-email" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Phone</label>
+                                <input type="tel" id="guest-phone"
+                                    pattern="[0-9]{10,15}" maxlength="15" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Address</label>
+                                <input type="text" id="guest-address">
+                            </div>
+
+                        </div>
+
+                        <button type="submit" class="primary-btn">
+                            Save Guest
+                        </button>
+
+                        <button type="button" class="secondary-btn"
+                            id="cancel-guest-form">
+                            Cancel
+                        </button>
+                    </form>
+                </div>
+
+                <div class="content-card">
+                    <div class="table-heading">
+                        <h3>All Guests</h3>
+                        <input type="text" id="guest-search"
+                            placeholder="Search guests...">
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Address</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="guest-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </section>
+
+
+            <!-- ROOM MANAGEMENT -->
+            <section class="page-section" id="rooms">
+
+                <div class="section-heading">
+                    <div>
+                        <h2>Room Management</h2>
+                        <p>Manage hotel rooms and their availability.</p>
+                    </div>
+
+                    <button class="primary-btn" id="show-room-form">
+                        + Add Room
+                    </button>
+                </div>
+
+                <div class="form-card hidden" id="room-form-card">
+                    <h3>Add New Room</h3>
+
+                    <form id="room-form">
+                        <div class="form-grid">
+
+                            <div class="form-group">
+                                <label>Room Number</label>
+                                <input type="text" id="room-number" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Room Type</label>
+                                <select id="room-type" required>
+                                    <option value="">Select type</option>
+                                    <option>Standard</option>
+                                    <option>Deluxe</option>
+                                    <option>Suite</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Price Per Night</label>
+                                <input type="number" id="room-price"
+                                    min="1" step="0.01" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Status</label>
+                                <select id="room-status">
+                                    <option>Available</option>
+                                    <option>Maintenance</option>
+                                    <option>Out of Service</option>
+                                </select>
+                            </div>
+
+                        </div>
+
+                        <button type="submit" class="primary-btn">
+                            Save Room
+                        </button>
+
+                        <button type="button" class="secondary-btn"
+                            id="cancel-room-form">
+                            Cancel
+                        </button>
+                    </form>
+                </div>
+
+                <div class="content-card">
+                    <div class="table-heading">
+                        <h3>All Rooms</h3>
+                        <input type="text" id="room-search"
+                            placeholder="Search rooms...">
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Room ID</th>
+                                    <th>Room Number</th>
+                                    <th>Type</th>
+                                    <th>Price/Night</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="room-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </section>
+
+
+            <!-- BOOKING MANAGEMENT -->
+            <section class="page-section" id="bookings">
+
+                <div class="section-heading">
+                    <div>
+                        <h2>Booking Management</h2>
+                        <p>Create and manage guest reservations.</p>
+                    </div>
+
+                    <button class="primary-btn" id="show-booking-form">
+                        + New Booking
+                    </button>
+                </div>
+
+                <div class="form-card hidden" id="booking-form-card">
+                    <h3>Create New Booking</h3>
+
+                    <form id="booking-form">
+                        <div class="form-grid">
+
+                            <div class="form-group">
+                                <label>Guest</label>
+                                <select id="booking-guest" required></select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Room</label>
+                                <select id="booking-room" required></select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Check-in Date</label>
+                                <input type="date" id="booking-checkin" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Check-out Date</label>
+                                <input type="date" id="booking-checkout" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Booking Status</label>
+                                <select id="booking-status">
+                                    <option>Confirmed</option>
+                                    <option>Checked-In</option>
+                                    <option>Checked-Out</option>
+                                </select>
+                            </div>
+
+                        </div>
+
+                        <button type="submit" class="primary-btn">
+                            Save Booking
+                        </button>
+
+                        <button type="button" class="secondary-btn"
+                            id="cancel-booking-form">
+                            Cancel
+                        </button>
+                    </form>
+                </div>
+
+                <div class="content-card">
+                    <div class="table-heading">
+                        <h3>All Bookings</h3>
+                        <input type="text" id="booking-search"
+                            placeholder="Search bookings...">
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Guest</th>
+                                    <th>Room</th>
+                                    <th>Check-in</th>
+                                    <th>Check-out</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="booking-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </section>
+
+
+            <!-- BILLING MANAGEMENT -->
+            <section class="page-section" id="billing">
+
+                <div class="section-heading">
+                    <div>
+                        <h2>Billing Management</h2>
+                        <p>Manage guest bills and payment records.</p>
+                    </div>
+
+                    <button class="primary-btn" id="show-billing-form">
+                        + Create Bill
+                    </button>
+                </div>
+
+                <div class="form-card hidden" id="billing-form-card">
+                    <h3>Create New Bill</h3>
+
+                    <form id="billing-form">
+                        <div class="form-grid">
+
+                            <div class="form-group">
+                                <label>Booking</label>
+                                <select id="billing-booking" required></select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Room Charges (₹)</label>
+                                <input type="number" id="billing-room-charges"
+                                    min="0" step="0.01" readonly required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Service Charges (₹)</label>
+                                <input type="number" id="billing-service-charges"
+                                    min="0" step="0.01" value="0" readonly required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Payment Status</label>
+                                <select id="billing-status">
+                                    <option>Pending</option>
+                                    <option>Paid</option>
+                                    <option>Partially Paid</option>
+                                    <option>Refunded</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Total Amount</label>
+                                <input type="text" id="billing-total" readonly>
+                            </div>
+
+                        </div>
+
+                        <button type="submit" class="primary-btn">
+                            Save Bill
+                        </button>
+
+                        <button type="button" class="secondary-btn"
+                            id="cancel-billing-form">
+                            Cancel
+                        </button>
+                    </form>
+                </div>
+
+                <div class="content-card">
+                    <div class="table-heading">
+                        <h3>All Bills</h3>
+                        <input type="text" id="billing-search"
+                            placeholder="Search bills...">
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Bill ID</th>
+                                    <th>Booking ID</th>
+                                    <th>Guest</th>
+                                    <th>Room Charges</th>
+                                    <th>Service Charges</th>
+                                    <th>Total</th>
+                                    <th>Payment Status</th>
+                                    <th>Invoice</th>
+                                </tr>
+                            </thead>
+                            <tbody id="billing-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </section>
+
+
+            <!-- STAFF MANAGEMENT -->
+            <section class="page-section" id="staff">
+
+                <div class="section-heading">
+                    <div>
+                        <h2>Staff Management</h2>
+                        <p>Manage hotel employees and their availability.</p>
+                    </div>
+
+                    <button class="primary-btn" id="show-staff-form">
+                        + Add Staff
+                    </button>
+                </div>
+
+                <div class="form-card hidden" id="staff-form-card">
+                    <h3>Add New Staff Member</h3>
+
+                    <form id="staff-form">
+                        <div class="form-grid">
+
+                            <div class="form-group">
+                                <label>Full Name</label>
+                                <input type="text" id="staff-name" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Role</label>
+                                <select id="staff-role" required>
+                                    <option value="">Select role</option>
+                                    <option>Housekeeping</option>
+                                    <option>Concierge</option>
+                                    <option>Laundry</option>
+                                    <option>Dining</option>
+                                    <option>Room Service</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Phone</label>
+                                <input type="tel" id="staff-phone"
+                                    pattern="[0-9]{10,15}" maxlength="15" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Availability</label>
+                                <select id="staff-availability">
+                                    <option>Available</option>
+                                    <option>Busy</option>
+                                    <option>On Leave</option>
+                                </select>
+                            </div>
+
+                        </div>
+
+                        <button type="submit" class="primary-btn">
+                            Save Staff
+                        </button>
+
+                        <button type="button" class="secondary-btn"
+                            id="cancel-staff-form">
+                            Cancel
+                        </button>
+                    </form>
+                </div>
+
+                <div class="content-card">
+                    <div class="table-heading">
+                        <h3>All Staff Members</h3>
+                        <input type="text" id="staff-search"
+                            placeholder="Search staff...">
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Staff ID</th>
+                                    <th>Name</th>
+                                    <th>Role</th>
+                                    <th>Phone</th>
+                                    <th>Availability</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="staff-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </section>
+
+
+            <!-- SERVICE MANAGEMENT -->
+            <section class="page-section" id="services">
+
+                <div class="section-heading">
+                    <div>
+                        <h2>Service Management</h2>
+                        <p>Manage hotel services and guest requests.</p>
+                    </div>
+
+                    <button class="primary-btn" id="show-service-form">
+                        + New Service Order
+                    </button>
+                </div>
+
+                <div class="form-card hidden" id="service-form-card">
+                    <h3>Create Service Order</h3>
+
+                    <form id="service-form">
+                        <div class="form-grid">
+
+                            <div class="form-group">
+                                <label>Booking</label>
+                                <select id="service-booking" required></select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Assign Staff</label>
+                                <select id="service-staff">
+                                    <option value="">Unassigned</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Service Type</label>
+                                <select id="service-type" required>
+                                    <option value="">Select service</option>
+                                    <option>Dining</option>
+                                    <option>Laundry</option>
+                                    <option>Housekeeping</option>
+                                    <option>Room Service</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Amount (₹)</label>
+                                <input type="number" id="service-amount"
+                                    min="0" step="0.01" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Description</label>
+                                <input type="text" id="service-description">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Order Status</label>
+                                <select id="service-status">
+                                    <option>Pending</option>
+                                    <option>In Progress</option>
+                                    <option>Completed</option>
+                                </select>
+                            </div>
+
+                        </div>
+
+                        <button type="submit" class="primary-btn">
+                            Save Service Order
+                        </button>
+
+                        <button type="button" class="secondary-btn"
+                            id="cancel-service-form">
+                            Cancel
+                        </button>
+                    </form>
+                </div>
+
+                <div class="content-card">
+                    <div class="table-heading">
+                        <h3>All Service Orders</h3>
+                        <input type="text" id="service-search"
+                            placeholder="Search service orders...">
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Booking ID</th>
+                                    <th>Service</th>
+                                    <th>Description</th>
+                                    <th>Staff</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="service-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </section>
+
+        </div>
+    </main>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/script.js"></script>
+</body>
+</html>
