@@ -65,6 +65,29 @@ app.use(errorHandler);
 // Start server
 const PORT = process.env.PORT || 5001;
 
-app.listen(PORT, () => {
-    console.log(`HotelEase server running on port ${PORT}`);
-});
+async function startServer() {
+    try {
+        const [columns] = await db.query(`
+            SELECT COLUMN_NAME
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'Billing'
+              AND COLUMN_NAME = 'charge_through_date'
+        `);
+
+        if (columns.length === 0) {
+            await db.query(`
+                ALTER TABLE Billing
+                ADD COLUMN charge_through_date DATE NULL
+            `);
+        }
+    } catch (error) {
+        console.error("Could not prepare billing schema:", error.message);
+    }
+
+    app.listen(PORT, () => {
+        console.log(`HotelEase server running on port ${PORT}`);
+    });
+}
+
+startServer();

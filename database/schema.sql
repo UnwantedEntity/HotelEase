@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS Billing (
     room_charges    DECIMAL(10,2) NOT NULL,
     service_charges DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     total_amount    DECIMAL(10,2) NOT NULL,
+    charge_through_date DATE NULL,
     payment_status  VARCHAR(20) NOT NULL DEFAULT 'Pending',
     PRIMARY KEY (bill_id),
     UNIQUE KEY booking_id (booking_id),
@@ -82,7 +83,8 @@ CREATE TABLE IF NOT EXISTS Service_Order (
 -- ------------------------------------------------------------
 -- Trigger: when a (non-cancelled) service order is created, add
 -- its amount to the booking's bill, if a bill already exists.
--- The backend relies on this (see backend/routes/serviceRoutes.js).
+-- The backend also recalculates the full bill in transactions, so
+-- the stored amount remains consistent even if legacy data drifts.
 -- ------------------------------------------------------------
 DROP TRIGGER IF EXISTS trg_service_order_after_insert;
 

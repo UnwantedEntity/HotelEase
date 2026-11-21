@@ -3,6 +3,30 @@ const router = express.Router();
 const db = require("../config/db");
 const validateId = require("../middleware/validateId");
 
+async function syncRoomAvailability(connection, roomId) {
+    const [rooms] = await connection.query(
+        "SELECT status FROM Room WHERE room_id = ? FOR UPDATE",
+        [roomId]
+    );
+
+    if (rooms.length === 0) return;
+
+    if (["Maintenance", "Out of Service"].includes(rooms[0].status)) return;
+
+    const [occupied] = await connection.query(`
+        SELECT booking_id
+        FROM Booking
+        WHERE room_id = ?
+          AND booking_status = 'Checked-In'
+        LIMIT 1
+    `, [roomId]);
+
+    await connection.query(
+        "UPDATE Room SET status = ? WHERE room_id = ?",
+        [occupied.length > 0 ? "Occupied" : "Available", roomId]
+    );
+}
+
 // GET all bookings
 router.get("/", async (req, res) => {
     try {
@@ -80,6 +104,13 @@ router.post("/", async (req, res) => {
             });
         }
 
+        if (bookingStatus === "Checked-In" && rooms[0].status !== "Available") {
+            await connection.rollback();
+            return res.status(409).json({
+                message: "A room can only be occupied when it is available"
+            });
+        }
+
         const [guests] = await connection.query(
             "SELECT guest_id FROM Guest WHERE guest_id = ?",
             [guest_id]
@@ -96,6 +127,7 @@ router.post("/", async (req, res) => {
              FROM Booking
              WHERE room_id = ?
                AND booking_status <> 'Cancelled'
+               AND booking_status <> 'Checked-Out'
                AND check_in < ?
                AND check_out > ?
              LIMIT 1`,
@@ -118,10 +150,7 @@ router.post("/", async (req, res) => {
 
         // A booking created already checked-in occupies the room
         if (bookingStatus === "Checked-In") {
-            await connection.query(
-                "UPDATE Room SET status = 'Occupied' WHERE room_id = ?",
-                [room_id]
-            );
+            await syncRoomAvailability(connection, room_id);
         }
 
         await connection.commit();
@@ -213,19 +242,7 @@ router.patch("/:id/status", validateId, async (req, res) => {
             [booking_status, req.params.id]
         );
 
-        if (booking_status === "Checked-In") {
-            await connection.query(
-                "UPDATE Room SET status = 'Occupied' WHERE room_id = ?",
-                [roomId]
-            );
-        } else if (current === "Checked-In") {
-            // Only a guest who was actually in the room frees it up.
-            // (Cancelling a future booking must not free an occupied room.)
-            await connection.query(
-                "UPDATE Room SET status = 'Available' WHERE room_id = ?",
-                [roomId]
-            );
-        }
+        await syncRoomAvailability(connection, roomId);
 
         await connection.commit();
 
@@ -294,12 +311,9 @@ router.delete("/:id", validateId, async (req, res) => {
             [req.params.id]
         );
 
-        // Deleting a checked-in booking frees its room
+        // Recalculate occupancy after deleting an active booking
         if (bookings[0].booking_status === "Checked-In") {
-            await connection.query(
-                "UPDATE Room SET status = 'Available' WHERE room_id = ?",
-                [bookings[0].room_id]
-            );
+            await syncRoomAvailability(connection, bookings[0].room_id);
         }
 
         await connection.commit();

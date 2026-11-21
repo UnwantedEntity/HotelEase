@@ -43,8 +43,15 @@ const mapBooking = row => ({
 const mapBill = row => ({
     id: row.bill_id,
     bookingId: row.booking_id,
-    roomCharges: Number(row.room_charges),
-    serviceCharges: Number(row.service_charges),
+    roomCharges: Number(row.calculated_room_charges ?? row.room_charges),
+    serviceCharges: Number(row.calculated_service_charges ?? row.service_charges),
+    extraStayCharges: Number(row.calculated_extra_stay_charges ?? 0),
+    chargeThroughDate: row.charge_through_date || "",
+    totalAmount: Number(
+        row.calculated_total_amount ??
+        row.total_amount ??
+        (Number(row.room_charges) + Number(row.service_charges))
+    ),
     status: row.payment_status
 });
 
@@ -53,7 +60,8 @@ const mapStaff = row => ({
     name: row.full_name,
     role: row.role,
     phone: row.phone,
-    availability: row.availability
+    availability: row.availability,
+    activeTasks: Number(row.active_task_count ?? 0)
 });
 
 const mapService = row => ({
@@ -144,15 +152,52 @@ function updateDashboard() {
     document.getElementById("total-guests").textContent = guests.length;
     document.getElementById("total-bookings").textContent = bookings.length;
 
-    const available = rooms.filter(
-        room => room.status === "Available"
+    const dateInput = document.getElementById("dashboard-date");
+    const selectedDate = dateInput?.value || new Date().toISOString().slice(0, 10);
+    if (dateInput && !dateInput.value) dateInput.value = selectedDate;
+
+    const occupiedRoomIds = new Set(
+        bookings
+            .filter(booking =>
+                booking.status !== "Cancelled" &&
+                booking.status !== "Checked-Out" &&
+                booking.checkIn <= selectedDate &&
+                booking.checkOut > selectedDate
+            )
+            .map(booking => Number(booking.roomId))
+    );
+
+    const unavailableRoomIds = new Set(
+        rooms
+            .filter(room =>
+                room.status === "Maintenance" ||
+                room.status === "Out of Service"
+            )
+            .map(room => Number(room.id))
+    );
+
+    const available = rooms.filter(room =>
+        !unavailableRoomIds.has(Number(room.id)) &&
+        !occupiedRoomIds.has(Number(room.id))
+    ).length;
+    const occupied = occupiedRoomIds.size;
+    const arrivals = bookings.filter(
+        booking => booking.status !== "Cancelled" &&
+            booking.checkIn === selectedDate
+    ).length;
+    const departures = bookings.filter(
+        booking => booking.status !== "Cancelled" &&
+            booking.checkOut === selectedDate
     ).length;
 
     document.getElementById("available-rooms").textContent = available;
+    document.getElementById("occupied-rooms").textContent = occupied;
+    document.getElementById("arrival-count").textContent = arrivals;
+    document.getElementById("departure-count").textContent = departures;
 
     const table = document.getElementById("recent-bookings");
 
-    table.innerHTML = bookings.map(booking => `
+    table.innerHTML = bookings.slice(0, 5).map(booking => `
         <tr>
             <td>#${booking.id}</td>
             <td>${escapeHTML(booking.guest)}</td>
@@ -402,6 +447,7 @@ function hasBookingConflict(roomId, checkIn, checkOut) {
     return bookings.some(booking =>
         Number(booking.roomId) === Number(roomId) &&
         booking.status !== "Cancelled" &&
+        booking.status !== "Checked-Out" &&
         checkIn < booking.checkOut &&
         checkOut > booking.checkIn
     );
@@ -562,19 +608,22 @@ function populateBillingOptions() {
         }).join("");
 }
 
-function calculateRoomCharges(booking) {
+function calculateRoomCharges(booking, chargeThroughDate = booking?.checkOut) {
     const room = rooms.find(r => r.id === booking.roomId);
 
     if (!room) return 0;
 
-    const checkIn = new Date(booking.checkIn + "T00:00:00");
-    const checkOut = new Date(booking.checkOut + "T00:00:00");
+    const toUtcMillis = value => {
+        const [year, month, day] = value.slice(0, 10).split("-").map(Number);
+        return Date.UTC(year, month - 1, day);
+    };
 
-    const nights = Math.round(
-        (checkOut - checkIn) / (1000 * 60 * 60 * 24)
+    const nights = Math.floor(
+        (toUtcMillis(chargeThroughDate || booking.checkOut) - toUtcMillis(booking.checkIn)) /
+        (1000 * 60 * 60 * 24)
     );
 
-    return nights * room.price;
+    return nights > 0 ? nights * room.price : 0;
 }
 
 function calculateServiceCharges(booking) {
@@ -612,12 +661,32 @@ document.getElementById("billing-booking").addEventListener("change", event => {
         b => b.id === Number(event.target.value)
     );
 
+    const chargeThrough = document.getElementById("billing-charge-through");
+    chargeThrough.value = booking ? booking.checkOut : "";
+    chargeThrough.min = booking ? booking.checkIn : "";
+
     document.getElementById("billing-room-charges").value =
-        booking ? calculateRoomCharges(booking) : "";
+        booking ? calculateRoomCharges(booking, chargeThrough.value) : "";
 
     document.getElementById("billing-service-charges").value =
         booking ? calculateServiceCharges(booking) : 0;
 
+    updateBillingTotal();
+});
+
+document.getElementById("billing-charge-through").addEventListener("change", event => {
+    const booking = bookings.find(
+        b => b.id === Number(document.getElementById("billing-booking").value)
+    );
+
+    if (!booking) return;
+
+    if (event.target.value < booking.checkIn) {
+        event.target.value = booking.checkIn;
+    }
+
+    document.getElementById("billing-room-charges").value =
+        calculateRoomCharges(booking, event.target.value);
     updateBillingTotal();
 });
 
@@ -649,7 +718,9 @@ function renderBills(search = "") {
             ? guests.find(g => g.id === booking.guestId)
             : null;
 
-        const total = bill.roomCharges + bill.serviceCharges;
+        const total = Number.isFinite(bill.totalAmount)
+            ? bill.totalAmount
+            : bill.roomCharges + bill.serviceCharges;
         const statusClass = bill.status.toLowerCase().replaceAll(" ", "-");
 
         return `
@@ -679,6 +750,7 @@ document.getElementById("billing-form").addEventListener("submit", async event =
 
     const bookingId = Number(document.getElementById("billing-booking").value);
     const status = document.getElementById("billing-status").value;
+    const chargeThroughDate = document.getElementById("billing-charge-through").value;
 
     if (!bookingId) {
         alert("Please select a booking.");
@@ -690,11 +762,23 @@ document.getElementById("billing-form").addEventListener("submit", async event =
         return;
     }
 
+    if (!chargeThroughDate) {
+        alert("Please select a charge-through date.");
+        return;
+    }
+
+    const booking = bookings.find(item => item.id === bookingId);
+    if (booking && chargeThroughDate < booking.checkIn) {
+        alert("Charge-through date cannot be before check-in.");
+        return;
+    }
+
     // Room and service charges are calculated by the server
     // from the booking dates, room price and service orders.
     const saved = await runAction(async () => {
         await API.billing.create({
             booking_id: bookingId,
+            charge_through_date: chargeThroughDate,
             payment_status: status
         });
 
@@ -744,6 +828,7 @@ function renderStaff(search = "") {
                         ${escapeHTML(member.availability)}
                     </span>
                 </td>
+                <td>${member.activeTasks} / 10</td>
                 <td>
                     <button class="delete-btn"
                         onclick="deleteStaff(${member.id})">
@@ -753,7 +838,7 @@ function renderStaff(search = "") {
             </tr>
         `;
     }).join("") || `
-        <tr><td colspan="6">No staff members found.</td></tr>
+        <tr><td colspan="7">No staff members found.</td></tr>
     `;
 }
 
@@ -817,8 +902,8 @@ function populateServiceOptions() {
         '<option value="">Unassigned</option>' +
         staff.map(member => `
             <option value="${member.id}"
-                ${member.availability !== "Available" ? "disabled" : ""}>
-                ${escapeHTML(member.name)} - ${escapeHTML(member.role)}
+                ${member.availability !== "Available" || member.activeTasks >= 10 ? "disabled" : ""}>
+                ${escapeHTML(member.name)} - ${escapeHTML(member.role)} (${member.activeTasks}/10)
             </option>
         `).join("");
 }
@@ -923,10 +1008,15 @@ document.getElementById("service-form").addEventListener("submit", async event =
             alert("Selected staff member is not available.");
             return;
         }
+
+        if (selectedStaff.activeTasks >= 10) {
+            alert("This staff member already has the maximum of 10 active tasks.");
+            return;
+        }
     }
 
     const saved = await runAction(async () => {
-        // The database trigger adds the amount to an existing bill
+        // The backend recalculates the existing bill from all active services
         await API.services.create({
             booking_id: bookingId,
             staff_id: staffId,
@@ -1072,7 +1162,9 @@ function printInvoice(billId) {
         </tr>
     `).join("");
 
-    const total = Number(bill.roomCharges) + Number(bill.serviceCharges);
+    const total = Number.isFinite(bill.totalAmount)
+        ? bill.totalAmount
+        : Number(bill.roomCharges) + Number(bill.serviceCharges);
     const invoiceWindow = window.open("", "_blank");
 
     if (!invoiceWindow) {
@@ -1190,6 +1282,7 @@ function printInvoice(billId) {
                         <p>Room Type: ${escapeHTML(room?.type || "-")}</p>
                         <p>Check-in: ${escapeHTML(booking.checkIn)}</p>
                         <p>Check-out: ${escapeHTML(booking.checkOut)}</p>
+                        ${bill.chargeThroughDate ? `<p>Charge through: ${escapeHTML(bill.chargeThroughDate)}</p>` : ""}
                         <p>Status: ${escapeHTML(booking.status)}</p>
                     </section>
                 </div>
@@ -1201,6 +1294,9 @@ function printInvoice(billId) {
                     </thead>
                     <tbody>
                         <tr><td>Room Charges</td><td>${formatCurrency(bill.roomCharges)}</td></tr>
+                        ${bill.extraStayCharges > 0 ? `
+                        <tr><td>Extra Stay Charges</td><td>${formatCurrency(bill.extraStayCharges)}</td></tr>
+                        ` : ""}
                         <tr><td>Service Charges</td><td>${formatCurrency(bill.serviceCharges)}</td></tr>
                     </tbody>
                 </table>
@@ -1256,6 +1352,12 @@ checkInDateInput.addEventListener("change", () => {
     input.addEventListener("input", () => {
         input.value = input.value.replace(/\D/g, "").slice(0, 15);
     });
+
+    const dashboardDateInput = document.getElementById("dashboard-date");
+    if (dashboardDateInput) {
+        dashboardDateInput.value = new Date().toISOString().slice(0, 10);
+        dashboardDateInput.addEventListener("change", updateDashboard);
+    }
 });
 
 // Extra client-side validation for all amount inputs.

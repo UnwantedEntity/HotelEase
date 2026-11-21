@@ -54,6 +54,10 @@
                 <div class="welcome-section">
                     <h2>Hotel Overview</h2>
                     <p>Manage your hotel operations from one place.</p>
+                    <div class="form-group dashboard-date">
+                        <label for="dashboard-date">Availability date</label>
+                        <input type="date" id="dashboard-date">
+                    </div>
                 </div>
 
                 <div class="stats-grid">
@@ -75,6 +79,18 @@
                     <div class="stat-card">
                         <p>Available Rooms</p>
                         <h2 id="available-rooms">0</h2>
+                    </div>
+                    <div class="stat-card">
+                        <p>Occupied on Date</p>
+                        <h2 id="occupied-rooms">0</h2>
+                    </div>
+                    <div class="stat-card">
+                        <p>Arrivals on Date</p>
+                        <h2 id="arrival-count">0</h2>
+                    </div>
+                    <div class="stat-card">
+                        <p>Departures on Date</p>
+                        <h2 id="departure-count">0</h2>
                     </div>
                 </div>
 
@@ -399,6 +415,12 @@
                             </div>
 
                             <div class="form-group">
+                                <label>Charge Through Date</label>
+                                <input type="date" id="billing-charge-through"
+                                    required>
+                            </div>
+
+                            <div class="form-group">
                                 <label>Payment Status</label>
                                 <select id="billing-status">
                                     <option>Pending</option>
@@ -536,6 +558,7 @@
                                     <th>Role</th>
                                     <th>Phone</th>
                                     <th>Availability</th>
+                                    <th>Active Tasks</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>

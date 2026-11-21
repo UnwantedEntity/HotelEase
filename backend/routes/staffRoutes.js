@@ -7,7 +7,27 @@ const validateId = require("../middleware/validateId");
 router.get("/", async (req, res) => {
     try {
         const [staff] = await db.query(
-            "SELECT * FROM Service_Staff ORDER BY staff_id DESC"
+            `SELECT
+                ss.staff_id,
+                ss.full_name,
+                ss.role,
+                ss.phone,
+                CASE
+                    WHEN ss.availability = 'On Leave' THEN 'On Leave'
+                    WHEN (SELECT COUNT(*)
+                          FROM Service_Order so
+                          WHERE so.staff_id = ss.staff_id
+                            AND so.order_status IN ('Pending', 'In Progress')
+                    ) >= 10 THEN 'Busy'
+                    ELSE 'Available'
+                END AS availability,
+                (SELECT COUNT(*)
+                 FROM Service_Order so
+                 WHERE so.staff_id = ss.staff_id
+                   AND so.order_status IN ('Pending', 'In Progress')
+                ) AS active_task_count
+             FROM Service_Staff ss
+             ORDER BY ss.staff_id DESC`
         );
 
         res.json(staff);
@@ -106,6 +126,20 @@ router.put("/:id", validateId, async (req, res) => {
             });
         }
 
+        let finalAvailability = availability;
+        if (availability !== "On Leave") {
+            const [counts] = await db.query(`
+                SELECT COUNT(*) AS activeTasks
+                FROM Service_Order
+                WHERE staff_id = ?
+                  AND order_status IN ('Pending', 'In Progress')
+            `, [req.params.id]);
+
+            if (Number(counts[0].activeTasks) >= 10) {
+                finalAvailability = "Busy";
+            }
+        }
+
         const [result] = await db.query(`
             UPDATE Service_Staff
             SET full_name = ?, role = ?, phone = ?, availability = ?
@@ -114,7 +148,7 @@ router.put("/:id", validateId, async (req, res) => {
             full_name,
             role,
             phone,
-            availability,
+            finalAvailability,
             req.params.id
         ]);
 
